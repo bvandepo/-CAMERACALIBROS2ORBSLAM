@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
     std::vector<std::string> strVec; //a vector of string to store the model file lines
     while (fm.getline(line,MAX_CAR_PER_LINE )) {
         strVec.push_back(string(line));
-        cout <<"ligne lue: "<< string(line) << endl;
+        //cout <<"ligne lue: "<< string(line) << endl;
     }
     fm.close();
     //The output file has to be opened after the model file was closed, because it can be the same file that ware opened in read-only and then in write-only
