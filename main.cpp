@@ -1,18 +1,23 @@
 //CAMERACALIBROS2ORBSLAM Monocular camera calibration file converter \n Bertrand VANDEPORTAELE 2016
-//example:    ./CAMERACALIBROS2ORBSLAM -i /home/bvandepo/ROS2ORBSLAM/ost.txt -m /home/bvandepo/orbslam/ORB_SLAM2/Examples/Monocular/ueye1280-BVANDEPO.yaml -o out.txt
+//example:    ./CAMERACALIBROS2ORBSLAM -i /home/bvandepo/orbslam/CAMERACALIBROS2ORBSLAM/ost.txt -m /home/bvandepo/orbslam/ORB_SLAM2/Examples/Monocular/ueye1280-BVANDEPO.yaml -o out.txt
+//        model and output file can be the same file, so this is also valid, the output file serves also as model in that case
+//           ./CAMERACALIBROS2ORBSLAM -i /home/bvandepo/orbslam/CAMERACALIBROS2ORBSLAM/ost.txt -o out.txt
+
 
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
 #include <ios>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void usage(){
+    cout <<"To use a model file that won't be modified, and generate an output file:" << endl;
     cout <<"CAMERACALIBROS2ORBSLAM -i inputFileName -m modelFileName -o outputFileName" << endl;
-    cout <<"all terms are mandatory" << endl;
-
+    cout <<"To update the output file (it is also used as model):" << endl;
+    cout <<"CAMERACALIBROS2ORBSLAM -i inputFileName -o modelandoutputFileName" << endl;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
@@ -72,6 +77,11 @@ int main(int argc, char *argv[])
             return EXIT_FAILURE;
         }
     }
+    //in case the model file name is not specified
+    if ( (modelFileName.size()==0)){
+        cout << "Using the output file as model" << endl;
+        modelFileName=outputFileName;
+    }
 
     if ( (inputFileName.size()==0) ||  (outputFileName.size()==0) ||  (modelFileName.size()==0) ){
         usage();
@@ -94,12 +104,7 @@ int main(int argc, char *argv[])
         std::cerr << "could not open file " <<  modelFileName <<endl;
         return EXIT_FAILURE;
     }
-    std::fstream fo(outputFileName.c_str(), std::ios::out );
-    if(!fo)
-    {
-        std::cerr << "could not open file " <<  outputFileName <<endl;
-        return EXIT_FAILURE;
-    }
+
 
 #define MAX_CAR_PER_LINE 256
     char line[MAX_CAR_PER_LINE ];
@@ -137,11 +142,24 @@ int main(int argc, char *argv[])
     }
     fi.close();
 
+    std::vector<std::string> strVec; //a vector of string to store the model file lines
     while (fm.getline(line,MAX_CAR_PER_LINE )) {
-        std::string str = string(line);
+        strVec.push_back(string(line));
+        cout <<"ligne lue: "<< string(line) << endl;
+    }
+    fm.close();
+    //The output file has to be opened after the model file was closed, because it can be the same file that ware opened in read-only and then in write-only
+    std::fstream fo(outputFileName.c_str(), std::ios::out );
+    if(!fo)
+    {
+        std::cerr << "could not open file " <<  outputFileName <<endl;
+        return EXIT_FAILURE;
+    }
+    for (unsigned int i=0;i<strVec.size();i++){
+        std::string str=strVec[i];
+        //cout <<"ligne: "<< str << endl;
         std::stringstream ss(str);
         string var;
-        //cout <<line << endl;
         ss  >> var;
         if (var.compare("Camera.fx:")==0){
             fo << var << " " << fx << endl;
@@ -162,10 +180,8 @@ int main(int argc, char *argv[])
         }else if (var.compare("Camera.p2:")==0){
             fo << var << " " << p2 << endl;
         }else
-            fo << line <<endl;
+            fo << str <<endl;
     }
-
-    fm.close();
     fo.close();
     cout <<"process ended correctly"<<endl;
     return 0;
